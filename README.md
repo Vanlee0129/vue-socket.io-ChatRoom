@@ -1,4 +1,4 @@
-# vue-socket.io-
+# vue-socket.io-chatRoom
 
 npm install  
 
