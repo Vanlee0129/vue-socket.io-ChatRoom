@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>我是OS课设</title>
+</head>
+
+<body>
+    <div id="app">
+        <div v-if="inputName">
+            <el-dialog title="欢迎加入OS课设聊天室" :visible.sync="dialogFormVisible">
+                <el-input v-model='userName' placeholder="请输入您的名字"></el-input>
+                <div slot="footer" class="dialog-footer">
+                    <el-button type="primary" @click="submit">加入</el-button>
+                </div>
+            </el-dialog>
+        </div>
+        <div v-if='main'>
+        <el-container>
+        <el-aside>
+            <el-card class="box">
+                <div slot="header" class="clearfix">
+                    <span>当前用户</span>
+                </div>
+                <ul id="Users">
+                    <li v-for="user in users">
+                        {{ user.name }}
+                    </li>
+                </ul>
+            </el-card>
+        </el-aside>
+        <el-main>
+        <el-card class="box-card">
+            <div slot="header" class="clearfix">
+                <span>ChatRoom</span>
+            </div>
+            <div>
+                <el-input type="textarea" :rows="24" v-model="textarea" :disabled="true">
+                </el-input>
+            </div>
+            <div style="margin-top: 15px;width: 88%;">
+                <el-input placeholder="请输入内容" v-model="input"></el-input>
+                <el-button class="button" @click="send">Send</el-button>
+            </div>
+        </el-card>
+    </el-main>
+    </el-container> 
+    </div>
+    </div>
+</body>
+
+</html>
+<script src="https://cdn.jsdelivr.net/npm/vue@2.5.21/dist/vue.js"></script>
+<script src="/socket.io/socket.io.js"></script>
+<!-- 引入样式 -->
+<link rel="stylesheet" href="https://unpkg.com/element-ui/lib/theme-chalk/index.css">
+<!-- 引入组件库 -->
+<script src="https://unpkg.com/element-ui/lib/index.js"></script>
+<script>
+var app = new Vue({
+  el: '#app',
+  data() {
+    return {
+        socket: {},
+        textarea:'',
+    	input:'',
+        userName:'',
+        inputName: true,
+        dialogFormVisible:true,
+        main: false,
+        users: []
+    }
+  },
+  created() {
+      var le = this;
+      document.onkeydown = e => {
+          var key = window.event.keyCode;
+          if (key == 13) {
+              le.enterSend();
+              le.enterSubmit();
+          }
+      }
+  },
+  mounted() {
+    this.init();
+  },
+  methods: {
+  	init() {
+        this.socket = io.connect();
+      },
+    sockets() {
+        this.socket.on("receiveMsg", data => {
+            this.textarea += data.client + ":" + data.msg + "\r\n";
+		});
+        this.socket.on('user conncet', data => {
+            var str = data;
+            this.textarea += str + '加入聊天室' + "\r\n";
+        });
+        this.socket.on('joinUsers', data => this.users = JSON.parse(JSON.stringify(data)));
+        this.socket.on('user disconncet', data => {
+            var str = data;
+            this.users.pop({name:str});
+            this.textarea += str + '离开聊天室' + "\r\n";
+        });
+        this.socket.on('changeUser', data => this.users = JSON.parse(JSON.stringify(data)));
+    },
+  	send() {
+  		let data = { client: this.userName, msg: this.input };
+  		//给服务端发送 sendMsg事件名的消息
+  		this.socket.emit("sendMsg", data);
+        this.textarea += this.userName + ":" + this.input + "\r\n";
+        this.input = "";
+    },
+    submit() {
+        this.dialogFormVisible = false;
+        this.main = true;
+        this.socket.emit('username', this.userName);
+        this.sockets();
+    },
+    enterSubmit() {
+        this.submit();
+    },
+    enterSend() {
+        this.send();
+    }
+  }
+});
+</script>
+<style type="text/css">
+    .button {
+        position: absolute;
+        top: 632px;
+        right: 48px;
+        width: 120px;
+    }
+
+    .box {
+        margin-top: 20px;
+    }
+</style>
